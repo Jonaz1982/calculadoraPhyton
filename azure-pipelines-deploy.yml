@@ -1,0 +1,83 @@
+trigger: none
+
+pr: none
+
+variables:
+  azureSubscription: "Nombre-Conexion-Servicio-Azure" # Nombre del service connection en Azure DevOps
+  azureResourceGroup: "rg-prueba-tecnica"
+  aksClusterName: "akz-prueba-tecnica"
+  containerRegistry: "acrpruebatecnica.azurecr.io"
+  containerImageName: "test-prueba-devops"
+  containerImageTag: "$(Build.BuildId)"
+  kubernetesNamespace: "default"
+
+pool:
+  vmImage: "ubuntu-latest"
+
+stages:
+  - stage: Deploy
+    displayName: "Despliegue a AKS"
+    jobs:
+      - job: DeployToAKS
+        displayName: "Desplegar imagen al clúster AKS"
+        steps:
+          # 1. Descargar artefacto publicado
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: "drop"
+              path: "$(Pipeline.Workspace)/drop"
+
+          # 2. Login en Azure
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "Conectando al clúster AKS..."
+                az aks get-credentials --resource-group $(azureResourceGroup) --name $(aksClusterName) --overwrite-existing
+
+          # 3. Aplicar manifiesto (ejemplo simple de despliegue)
+          - task: Kubernetes@1
+            displayName: "Desplegar a AKS"
+            inputs:
+              connectionType: "Azure Resource Manager"
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(aksClusterName)
+              namespace: $(kubernetesNamespace)
+              command: apply
+              useConfigurationFile: true
+              configuration: |
+                apiVersion: apps/v1
+                kind: Deployment
+                metadata:
+                  name: prueba-devops
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      app: prueba-devops
+                  template:
+                    metadata:
+                      labels:
+                        app: prueba-devops
+                    spec:
+                      containers:
+                        - name: prueba-devops
+                          image: $(containerRegistry)/$(containerImageName):$(containerImageTag)
+                          ports:
+                            - containerPort: 80
+                ---
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  name: prueba-devops-service
+                spec:
+                  selector:
+                    app: prueba-devops
+                  ports:
+                    - protocol: TCP
+                      port: 80
+                      targetPort: 80
+                  type: LoadBalancer
