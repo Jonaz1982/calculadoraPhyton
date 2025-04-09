@@ -5,27 +5,24 @@ trigger:
 
 pool:
   vmImage: "ubuntu-latest"
-  timeoutInMinutes: 10 # Tiempo máximo aumentado
+  timeoutInMinutes: 10
 
 variables:
   python.version: "3.8"
 
 steps:
-  # 1. Configuración de Python
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(python.version)
       addToPath: true
     displayName: "Configurar Python $(python.version)"
 
-  # 2. Instalación de dependencias
   - script: |
       python -m pip install --upgrade pip
       pip install pytest
     displayName: "Instalar dependencias"
     timeoutInMinutes: 3
 
-  # 3. Configuración del entorno
   - script: |
       echo "##[group]Estructura del proyecto"
       ls -R
@@ -38,7 +35,6 @@ steps:
       echo "##[endgroup]"
     displayName: "Configurar entorno"
 
-  # 4. Paso de diagnóstico (opcional, puede removerse después)
   - script: |
       echo "##[group]Diagnóstico detallado"
       echo "Contenido de test/:"
@@ -49,9 +45,8 @@ steps:
       python -c "import sys; print('\n'.join(sys.path))"
       echo "##[endgroup]"
     displayName: "Verificación del entorno"
-    condition: always() # Se ejecuta incluso si fallan pasos anteriores
+    condition: always()
 
-  # 5. Ejecución de pruebas
   - script: |
       echo "##[group]Ejecutando pruebas"
       python -m pytest test/test_calculadora.py -v
