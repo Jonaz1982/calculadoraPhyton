@@ -1,52 +1,44 @@
-# calculadora.py
-
-def sumar(a, b):
-    return a + b
-
-def restar(a, b):
-    return a - b
-
-def multiplicar(a, b):
-    return a * b
-
-def dividir(a, b):
-    if b == 0:
-        return "Error: No se puede dividir entre cero."
-    return a / b
-
-def mostrar_menu():
-    print("Calculadora en Python")
-    print("Selecciona una opción:")
-    print("1. Sumar")
-    print("2. Restar")
-    print("3. Multiplicar")
-    print("4. Dividir")
+def calculadora():
+    print("Calculadora básica")
+    print("Operaciones disponibles:")
+    print("1. Suma (+)")
+    print("2. Resta (-)")
+    print("3. Multiplicación (*)")
+    print("4. División (/)")
     print("5. Salir")
+    
+    while True:
+        try:
+            opcion = input("\nSeleccione una operación (1-5): ")
+            
+            if opcion == '5':
+                print("¡Hasta luego!")
+                break
+                
+            if opcion not in ['1', '2', '3', '4']:
+                print("Opción no válida. Por favor, elija 1-5.")
+                continue
+                
+            num1 = float(input("Ingrese el primer número: "))
+            num2 = float(input("Ingrese el segundo número: "))
+            
+            if opcion == '1':
+                print(f"Resultado: {num1} + {num2} = {num1 + num2}")
+            elif opcion == '2':
+                print(f"Resultado: {num1} - {num2} = {num1 - num2}")
+            elif opcion == '3':
+                print(f"Resultado: {num1} * {num2} = {num1 * num2}")
+            elif opcion == '4':
+                if num2 == 0:
+                    print("Error: No se puede dividir por cero")
+                else:
+                    print(f"Resultado: {num1} / {num2} = {num1 / num2}")
+                    
+        except ValueError:
+            print("Error: Por favor ingrese números válidos")
+        except Exception as e:
+            print(f"Ocurrió un error: {e}")
 
-while True:
-    mostrar_menu()
-    opcion = input("Ingresa tu opción (1-5): ")
-
-    if opcion == '5':
-        print("¡Hasta luego!")
-        break
-
-    try:
-        num1 = float(input("Ingresa el primer número: "))
-        num2 = float(input("Ingresa el segundo número: "))
-    except ValueError:
-        print("Error: Ingresa valores numéricos válidos.")
-        continue
-
-    if opcion == '1':
-        print(f"Resultado: {sumar(num1, num2)}")
-    elif opcion == '2':
-        print(f"Resultado: {restar(num1, num2)}")
-    elif opcion == '3':
-        print(f"Resultado: {multiplicar(num1, num2)}")
-    elif opcion == '4':
-        print(f"Resultado: {dividir(num1, num2)}")
-    else:
-        print("Opción no válida. Intenta nuevamente.")
-
-    print("\n")
+# Ejecutar la calculadora
+if __name__ == "__main__":
+    calculadora()
