@@ -18,7 +18,7 @@ steps:
 
   - script: |
       pip install -r requerementes.txt
-    displayName: "Instalara dependecias"
+    displayName: "Instalar dependecias"
 
   - script: |
       python test/test_calculadora.py
