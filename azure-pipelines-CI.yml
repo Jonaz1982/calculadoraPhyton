@@ -69,15 +69,15 @@ stages:
                 -Dsonar.python.coverage.reportPaths=coverage.xml \
                 -Dsonar.python.xunit.reportPath=test-results.xml \
                 -Dsonar.host.url=$(SONAR_HOST_URL) \
-                -Dsonar.login=$(SONAR_TOKEN) \
+                -Dsonar.login=$SONAR_TOKEN \
                 -Dsonar.python.version=$(python.version) \
                 -Dsonar.verbose=true
               echo "##[endgroup]"
             displayName: "Run SonarQube Analysis"
             env:
-              SONAR_TOKEN: $(SONAR_TOKEN_SECRET)
+              SONAR_TOKEN: $(SONAR_TOKEN_SECRET) # Variable secreta en Azure DevOps
 
-          # 6. Publicar artefactos (opcional para CD)
+          # 6. Publicar artefactos
           - task: PublishPipelineArtifact@1
             inputs:
               targetPath: $(System.DefaultWorkingDirectory)
