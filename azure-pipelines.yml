@@ -2,7 +2,6 @@ trigger:
   branches:
     include:
       - main
-  clean: true # Limpieza del workspace antes de cada ejecución
 
 pool:
   vmImage: "ubuntu-latest"
