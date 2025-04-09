@@ -14,15 +14,16 @@ steps:
 
   - script: |
       python -m pip install --upgrade pip
-      pip install pytest  # Instalamos pytest directamente aquí
-    displayName: "Configurar entorno Python"
+      pip install pytest
+    displayName: "Instalar dependencias"
 
   - script: |
-      if [ -f requirements.txt ]; then
-        pip install -r requirements.txt
-      fi
-    displayName: "Instalar dependencias adicionales (si existen)"
+      echo "Estructura del proyecto:"
+      ls -R
+      echo "Instalando el paquete en modo desarrollo..."
+      pip install -e .
+    displayName: "Configurar entorno"
 
   - script: |
-      python -m pytest test/test_calculadora.py -v
+      PYTHONPATH=$PYTHONPATH:. python -m pytest test/test_calculadora.py -v
     displayName: "Ejecutar pruebas unitarias"
