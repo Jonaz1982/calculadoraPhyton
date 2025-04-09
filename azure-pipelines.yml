@@ -14,13 +14,12 @@ variables:
   SONAR_PROJECT_KEY: "test-prueba-devops"
 
 steps:
-  # 1. Instalar Java 17 (requerido por SonarScanner)
-  - task: JavaToolInstaller@0
-    inputs:
-      versionSpec: "17"
-      jdkArchitectureOption: "x64"
-      jdkSourceOption: "Preinstalled"
-    displayName: "Instalar Java 17"
+  # 1. Verificar versión de Java preinstalada
+  - script: |
+      echo "##[group]Versión de Java"
+      java -version
+      echo "##[endgroup]"
+    displayName: "Verificar Java preinstalado"
 
   # 2. Configurar Python
   - task: UsePythonVersion@0
@@ -38,7 +37,6 @@ steps:
   # 4. Descargar SonarScanner compatible
   - script: |
       echo "##[group]Instalando SonarScanner"
-      # Versión más reciente compatible
       wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
       unzip sonar-scanner-cli-*.zip -d /opt
       rm sonar-scanner-cli-*.zip
