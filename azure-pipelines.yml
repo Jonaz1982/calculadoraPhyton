@@ -15,10 +15,46 @@ variables:
 
 stages:
   - stage: PrepararEntorno
-    displayName: "Preparar Entorno"
+    displayName: "Preparar entorno"
     jobs:
-      - job: Setup
-        displayName: "Instalar herramientas y dependencias"
+      - job: Preparacion
+        displayName: "Configurar entorno y herramientas"
+        steps:
+          - script: |
+              echo "##[group]Versión de Java"
+              java -version
+              echo "##[endgroup]"
+            displayName: "Verificar Java preinstalado"
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(python.version)
+              addToPath: true
+            displayName: "Configurar Python $(python.version)"
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install pytest pytest-cov
+            displayName: "Instalar dependencias Python"
+
+          - script: |
+              echo "##[group]Instalando SonarScanner"
+              wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+              unzip sonar-scanner-cli-*.zip -d /opt
+              rm sonar-scanner-cli-*.zip
+              echo "##[endgroup]"
+            displayName: "Instalar SonarScanner"
+
+          - script: |
+              echo "##vso[task.setvariable variable=SONAR_SCANNER_PATH]/opt/sonar-scanner-5.0.1.3006-linux/bin"
+            displayName: "Exportar ruta de SonarScanner"
+
+  - stage: PruebasYAnalisis
+    displayName: "Ejecutar pruebas y análisis"
+    dependsOn: PrepararEntorno
+    jobs:
+      - job: TestYSonar
+        displayName: "Ejecutar pruebas y analizar con SonarQube"
         steps:
           - task: UsePythonVersion@0
             inputs:
@@ -27,52 +63,18 @@ stages:
             displayName: "Configurar Python $(python.version)"
 
           - script: |
-              echo "##[group]Preparando entorno"
-              java -version
-              python -m pip install --upgrade pip
               pip install pytest pytest-cov
-              wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-              unzip sonar-scanner-cli-*.zip -d /opt
-              rm sonar-scanner-cli-*.zip
-              echo "##vso[task.prependpath]$PWD/app"
-              echo "##vso[task.prependpath]/opt/sonar-scanner-5.0.1.3006-linux/bin"
-              echo "##[endgroup]"
-            displayName: "Instalar y configurar entorno"
+            displayName: "Instalar dependencias de pruebas"
 
-  - stage: Pruebas
-    displayName: "Ejecutar Pruebas"
-    dependsOn: PrepararEntorno
-    jobs:
-      - job: Test
-        displayName: "Pruebas y Reportes"
-        steps:
           - script: |
               echo "##[group]Ejecución de pruebas"
               python -m pytest test/ --cov=app --cov-report=xml:coverage.xml -v --junitxml=test-results.xml
               echo "##[endgroup]"
             displayName: "Ejecutar pruebas"
 
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFiles: "**/test-results.xml"
-              testRunTitle: "Resultados de Pruebas Unitarias"
-            displayName: "Publicar resultados de pruebas"
-
-          - task: PublishCodeCoverageResults@1
-            inputs:
-              codeCoverageTool: cobertura
-              summaryFileLocation: "coverage.xml"
-            displayName: "Publicar cobertura de código"
-
-  - stage: Analisis
-    displayName: "Análisis SonarQube"
-    dependsOn: Pruebas
-    jobs:
-      - job: SonarQube
-        displayName: "Análisis Estático"
-        steps:
           - script: |
-              echo "##[group]Análisis SonarQube"
+              echo "##[group]Ejecutando análisis SonarQube"
+              export PATH=$(SONAR_SCANNER_PATH):$PATH
               sonar-scanner \
                 -Dsonar.projectKey=$(SONAR_PROJECT_KEY) \
                 -Dsonar.projectName="test-prueba-devops" \
@@ -85,25 +87,4 @@ stages:
                 -Dsonar.login=$(SONAR_TOKEN) \
                 -Dsonar.python.version=$(python.version)
               echo "##[endgroup]"
-            displayName: "Ejecutar análisis SonarQube"
-
-  - stage: PublicarArtefactos
-    displayName: "Publicar Artefactos del Pipeline"
-    dependsOn: Analisis
-    jobs:
-      - job: Publicar
-        displayName: "Publicar resultados"
-        steps:
-          - task: CopyFiles@2
-            inputs:
-              contents: |
-                coverage.xml
-                test-results.xml
-              targetFolder: $(Build.ArtifactStagingDirectory)
-
-          - task: PublishBuildArtifacts@1
-            inputs:
-              pathToPublish: $(Build.ArtifactStagingDirectory)
-              artifactName: reportes
-              publishLocation: Container
-            displayName: "Publicar artefacto del pipeline"
+            displayName: "Analizar con SonarQube"
