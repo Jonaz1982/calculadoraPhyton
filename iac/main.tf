@@ -31,4 +31,8 @@ module "monitoring" {
   location            = var.location
   resource_group_name = var.resource_group_name
   aks_clusters        = [module.aks_cluster_1.cluster_name, module.aks_cluster_2.cluster_name]
-}
+
+  k8s_host                   = module.aks.k8s_host
+    k8s_client_certificate     = module.aks.k8s_client_certificate
+    k8s_client_key             = module.aks.k8s_client_key
+    k8s_cluster_ca_certificate = module.aks.k8s_cluster_ca_certificate}
