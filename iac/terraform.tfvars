@@ -1,0 +1,14 @@
+location              = "eastus"
+environment           = "dev"
+resource_group_name   = "rg-infra-dev"
+aks_name_1            = "aks-cluster-1"
+aks_name_2            = "aks-cluster-2"
+node_count            = 2
+node_max_count        = 5
+node_min_count        = 1
+sql_server_name       = "sqlserverdev001"
+sql_admin_user        = "sqladmin"
+sql_admin_password    = "P@ssw0rd123!" 
+vnet_address_space    = "10.0.0.0/16"
+public_subnet_cidrs   = ["10.0.1.0/24"]
+private_subnet_cidrs  = ["10.0.2.0/24"]
