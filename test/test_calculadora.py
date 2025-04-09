@@ -2,7 +2,7 @@ import unittest
 from io import StringIO
 import sys
 from unittest.mock import patch
-from calculadora import calculadora  # Asumiendo que guardaste el código en calculadora.py
+from calculadora import calculadora 
 
 class TestCalculadora(unittest.TestCase):
     
