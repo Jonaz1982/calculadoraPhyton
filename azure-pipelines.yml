@@ -5,53 +5,62 @@ trigger:
 
 pool:
   vmImage: "ubuntu-latest"
-  timeoutInMinutes: 15
+  timeoutInMinutes: 20
 
 variables:
   python.version: "3.8"
   SONAR_HOST_URL: "https://sonarqube.imaginamos.com"
-  SONAR_TOKEN: "sqa_ecda87f6f9e4b59bbde5d0730b3be1722513c848"
+  SONAR_TOKEN: $(SONAR_TOKEN_SECRET) # Define esta variable secreta en Azure DevOps
   SONAR_PROJECT_KEY: "test-prueba-devops"
 
 steps:
-  # 1. Configuración de Python
+  # 1. Instalar Java 17 (requerido por SonarScanner)
+  - task: JavaToolInstaller@0
+    inputs:
+      versionSpec: "17"
+      jdkArchitectureOption: "x64"
+      jdkSourceOption: "Preinstalled"
+    displayName: "Instalar Java 17"
+
+  # 2. Configurar Python
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(python.version)
       addToPath: true
     displayName: "Configurar Python $(python.version)"
 
-  # 2. Instalación de dependencias
+  # 3. Instalar dependencias
   - script: |
       python -m pip install --upgrade pip
       pip install pytest pytest-cov
-    displayName: "Instalar dependencias"
+    displayName: "Instalar dependencias Python"
 
-  # 3. Descargar SonarScanner
+  # 4. Descargar SonarScanner compatible
   - script: |
       echo "##[group]Instalando SonarScanner"
-      wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+      # Versión más reciente compatible
+      wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
       unzip sonar-scanner-cli-*.zip -d /opt
       rm sonar-scanner-cli-*.zip
       echo "##[endgroup]"
     displayName: "Instalar SonarScanner"
 
-  # 4. Configurar entorno
+  # 5. Configurar entorno
   - script: |
       echo "##[group]Configurando entorno"
       echo "##vso[task.prependpath]$PWD/app"
-      echo "##vso[task.prependpath]/opt/sonar-scanner-4.8.0.2856-linux/bin"
+      echo "##vso[task.prependpath]/opt/sonar-scanner-5.0.1.3006-linux/bin"
       echo "##[endgroup]"
     displayName: "Configurar paths"
 
-  # 5. Ejecutar pruebas con cobertura
+  # 6. Ejecutar pruebas con cobertura
   - script: |
       echo "##[group]Ejecutando pruebas con cobertura"
       python -m pytest test/ --cov=app --cov-report=xml:coverage.xml -v --junitxml=test-results.xml
       echo "##[endgroup]"
     displayName: "Ejecutar pruebas"
 
-  # 6. Ejecutar análisis SonarQube
+  # 7. Ejecutar análisis SonarQube
   - script: |
       echo "##[group]Ejecutando análisis SonarQube"
       sonar-scanner \
