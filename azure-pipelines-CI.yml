@@ -84,3 +84,9 @@ stages:
               artifact: "drop"
               publishLocation: "pipeline"
             displayName: "Publish build artifacts"
+
+  - stage: Deploy
+    displayName: "Deploy Stage"
+    dependsOn: BuildAndTest
+    jobs:
+      - template: azure-pipelines-deploy.yml
