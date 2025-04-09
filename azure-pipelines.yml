@@ -14,44 +14,8 @@ variables:
   SONAR_PROJECT_KEY: "test-prueba-devops"
 
 stages:
-  - stage: PrepararEntorno
-    displayName: "Preparar entorno"
-    jobs:
-      - job: Preparacion
-        displayName: "Configurar entorno y herramientas"
-        steps:
-          - script: |
-              echo "##[group]Versión de Java"
-              java -version
-              echo "##[endgroup]"
-            displayName: "Verificar Java preinstalado"
-
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: $(python.version)
-              addToPath: true
-            displayName: "Configurar Python $(python.version)"
-
-          - script: |
-              python -m pip install --upgrade pip
-              pip install pytest pytest-cov
-            displayName: "Instalar dependencias Python"
-
-          - script: |
-              echo "##[group]Instalando SonarScanner"
-              wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-              unzip sonar-scanner-cli-*.zip -d /opt
-              rm sonar-scanner-cli-*.zip
-              echo "##[endgroup]"
-            displayName: "Instalar SonarScanner"
-
-          - script: |
-              echo "##vso[task.setvariable variable=SONAR_SCANNER_PATH]/opt/sonar-scanner-5.0.1.3006-linux/bin"
-            displayName: "Exportar ruta de SonarScanner"
-
   - stage: PruebasYAnalisis
     displayName: "Ejecutar pruebas y análisis"
-    dependsOn: PrepararEntorno
     jobs:
       - job: TestYSonar
         displayName: "Ejecutar pruebas y analizar con SonarQube"
@@ -60,11 +24,21 @@ stages:
             inputs:
               versionSpec: $(python.version)
               addToPath: true
-            displayName: "Configurar Python $(python.version)"
+            displayName: "Configurar Python"
 
           - script: |
+              python -m pip install --upgrade pip
               pip install pytest pytest-cov
             displayName: "Instalar dependencias de pruebas"
+
+          - script: |
+              echo "##[group]Instalando SonarScanner"
+              wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+              unzip sonar-scanner-cli-*.zip -d /opt
+              rm sonar-scanner-cli-*.zip
+              echo "##vso[task.prependpath]/opt/sonar-scanner-5.0.1.3006-linux/bin"
+              echo "##[endgroup]"
+            displayName: "Instalar SonarScanner"
 
           - script: |
               echo "##[group]Ejecución de pruebas"
@@ -74,7 +48,7 @@ stages:
 
           - script: |
               echo "##[group]Ejecutando análisis SonarQube"
-              export PATH=$(SONAR_SCANNER_PATH):$PATH
+              export PATH=/opt/sonar-scanner-5.0.1.3006-linux/bin:$PATH
               sonar-scanner \
                 -Dsonar.projectKey=$(SONAR_PROJECT_KEY) \
                 -Dsonar.projectName="test-prueba-devops" \
