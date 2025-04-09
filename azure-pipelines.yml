@@ -14,11 +14,11 @@ variables:
   SONAR_PROJECT_KEY: "test-prueba-devops"
 
 stages:
-  - stage: PruebasYAnalisis
-    displayName: "Ejecutar pruebas y análisis"
+  - stage: PrepararYProbar
+    displayName: "Preparar entorno y ejecutar pruebas"
     jobs:
-      - job: TestYSonar
-        displayName: "Ejecutar pruebas y analizar con SonarQube"
+      - job: InstalarYProbar
+        displayName: "Instalar dependencias y ejecutar pruebas"
         steps:
           - task: UsePythonVersion@0
             inputs:
@@ -29,36 +29,64 @@ stages:
           - script: |
               python -m pip install --upgrade pip
               pip install pytest pytest-cov
-            displayName: "Instalar dependencias de pruebas"
+            displayName: "Instalar dependencias de prueba"
 
           - script: |
-              echo "##[group]Instalando SonarScanner"
-              wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-              unzip sonar-scanner-cli-*.zip -d /opt
-              rm sonar-scanner-cli-*.zip
-              echo "##vso[task.prependpath]/opt/sonar-scanner-5.0.1.3006-linux/bin"
-              echo "##[endgroup]"
-            displayName: "Instalar SonarScanner"
-
-          - script: |
-              echo "##[group]Ejecución de pruebas"
+              echo "##[group]Ejecutando pruebas"
               python -m pytest test/ --cov=app --cov-report=xml:coverage.xml -v --junitxml=test-results.xml
               echo "##[endgroup]"
             displayName: "Ejecutar pruebas"
 
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFiles: "**/test-results.xml"
+              testRunTitle: "Resultados de pruebas"
+              failTaskOnFailedTests: true
+            displayName: "Publicar resultados de pruebas"
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: "$(System.DefaultWorkingDirectory)/coverage.xml"
+              artifact: "coverage-report"
+              publishLocation: "pipeline"
+            displayName: "Publicar reporte de cobertura"
+
           - script: |
-              echo "##[group]Ejecutando análisis SonarQube"
-              export PATH=/opt/sonar-scanner-5.0.1.3006-linux/bin:$PATH
+              echo "##[group]Instalando SonarScanner"
+              wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+              unzip sonar-scanner-cli-*.zip -d $(Agent.TempDirectory)/sonar
+              rm sonar-scanner-cli-*.zip
+              echo "##vso[task.setvariable variable=SONAR_SCANNER_PATH;isOutput=true]$(Agent.TempDirectory)/sonar/sonar-scanner-5.0.1.3006-linux/bin"
+              echo "##[endgroup]"
+            name: SetSonarPath
+            displayName: "Descargar y definir ruta del SonarScanner"
+
+  - stage: Analizar
+    displayName: "Análisis con SonarQube"
+    dependsOn: PrepararYProbar
+    jobs:
+      - job: AnalisisSonarQube
+        displayName: "Ejecutar análisis en SonarQube"
+        variables:
+          SONAR_SCANNER_PATH: $[ dependencies.PrepararYProbar.outputs['InstalarYProbar.SetSonarPath.SONAR_SCANNER_PATH'] ]
+        steps:
+          - download: current
+            artifact: coverage-report
+            displayName: "Descargar artefacto de cobertura"
+
+          - script: |
+              echo "##[group]Agregando SonarScanner al PATH"
+              export PATH=$SONAR_SCANNER_PATH:$PATH
               sonar-scanner \
                 -Dsonar.projectKey=$(SONAR_PROJECT_KEY) \
                 -Dsonar.projectName="test-prueba-devops" \
                 -Dsonar.projectVersion=1.0 \
                 -Dsonar.sources=app \
                 -Dsonar.tests=test \
-                -Dsonar.python.coverage.reportPaths=coverage.xml \
+                -Dsonar.python.coverage.reportPaths=coverage-report/coverage.xml \
                 -Dsonar.python.xunit.reportPath=test-results.xml \
                 -Dsonar.host.url=$(SONAR_HOST_URL) \
                 -Dsonar.login=$(SONAR_TOKEN) \
                 -Dsonar.python.version=$(python.version)
               echo "##[endgroup]"
-            displayName: "Analizar con SonarQube"
+            displayName: "Ejecutar análisis SonarQube"
