@@ -4,22 +4,22 @@ trigger:
       - main
 
 pool:
-  vmImage: "ubuntu-lastest"
+  vmImage: "ubuntu-latest"
 
 steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: "3X"
+      versionSpec: "3.8"
       addToPath: true
 
   - script: |
       python -m pip install --upgrade pip
-    displayName: "Instalar pip"
+    displayName: "Actualizar pip"
 
   - script: |
-      pip install -r requirementes.txt
-    displayName: "Instalar dependecias"
+      pip install -r requirements.txt  # Nombre del archivo corregido (antes "requirementes.txt")
+    displayName: "Instalar dependencias"
 
   - script: |
-      python test/test_calculadora.py
-    displayName: "Ejecutar pruebas"
+      python -m pytest tests/ -v  # Ejecuta todos los tests en la carpeta tests/ con modo verbose
+    displayName: "Ejecutar pruebas unitarias"
