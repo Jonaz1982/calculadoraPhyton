@@ -2,7 +2,7 @@ import unittest
 from io import StringIO
 import sys
 from unittest.mock import patch
-from ..calculadora import calculadora
+from app.calculadora import calculadora
 
 class TestCalculadora(unittest.TestCase):
     

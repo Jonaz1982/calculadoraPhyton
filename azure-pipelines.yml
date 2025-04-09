@@ -20,10 +20,10 @@ steps:
   - script: |
       echo "Estructura del proyecto:"
       ls -R
-      echo "Instalando el paquete en modo desarrollo..."
-      pip install -e .
+      echo "Configurando PYTHONPATH..."
+      echo "##vso[task.prependpath]$PWD/app"
     displayName: "Configurar entorno"
 
   - script: |
-      PYTHONPATH=$PYTHONPATH:. python -m pytest test/test_calculadora.py -v
+      python -m pytest test/test_calculadora.py -v
     displayName: "Ejecutar pruebas unitarias"
