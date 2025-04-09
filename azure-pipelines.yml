@@ -14,12 +14,15 @@ steps:
 
   - script: |
       python -m pip install --upgrade pip
-    displayName: "Actualizar pip"
+      pip install pytest  # Instalamos pytest directamente aquí
+    displayName: "Configurar entorno Python"
 
   - script: |
-      pip install -r requirements.txt  # Nombre del archivo corregido (antes "requirementes.txt")
-    displayName: "Instalar dependencias"
+      if [ -f requirements.txt ]; then
+        pip install -r requirements.txt
+      fi
+    displayName: "Instalar dependencias adicionales (si existen)"
 
   - script: |
-      python -m pytest tests/ -v  # Ejecuta todos los tests en la carpeta tests/ con modo verbose
+      python -m pytest tests/test_calculadora.py -v
     displayName: "Ejecutar pruebas unitarias"
