@@ -1,54 +1,69 @@
+name: $(BuildDefinitionName)_$(date:yyyyMMdd)$(rev:.r)
 trigger:
   branches:
     include:
       - main
+  paths:
+    exclude:
+      - README.md
+      - .gitignore
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    exclude:
+      - README.md
+      - .gitignore
 
 pool:
   vmImage: "ubuntu-latest"
-  timeoutInMinutes: 20
+  timeoutInMinutes: 30
 
 variables:
   python.version: "3.8"
   SONAR_HOST_URL: "https://sonarqube.imaginamos.com"
   SONAR_TOKEN: $(SONAR_TOKEN_SECRET)
   SONAR_PROJECT_KEY: "test-prueba-devops"
+  buildArtifactName: "drop"
+  system.debug: false
 
 stages:
-  - stage: PruebasYAnalisis
-    displayName: "Ejecutar pruebas y análisis"
+  - stage: BuildAndTest
+    displayName: "Build y Pruebas"
     jobs:
-      - job: TestYSonar
-        displayName: "Ejecutar pruebas y analizar con SonarQube"
+      - job: Build
+        displayName: "Compilación y Análisis"
         steps:
           - task: UsePythonVersion@0
             inputs:
               versionSpec: $(python.version)
               addToPath: true
-            displayName: "Configurar Python"
+            displayName: "Configurar Python $(python.version)"
 
           - script: |
               python -m pip install --upgrade pip
-              pip install pytest pytest-cov
-            displayName: "Instalar dependencias de pruebas"
+              pip install -r requirements.txt
+            displayName: "Instalar dependencias"
 
           - script: |
-              echo "##[group]Instalando SonarScanner"
-              wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-              unzip sonar-scanner-cli-*.zip -d /opt
+              echo "##[group]Instalación SonarScanner"
+              wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+              unzip -q sonar-scanner-cli-*.zip -d /opt
               rm sonar-scanner-cli-*.zip
               echo "##vso[task.prependpath]/opt/sonar-scanner-5.0.1.3006-linux/bin"
               echo "##[endgroup]"
             displayName: "Instalar SonarScanner"
 
           - script: |
-              echo "##[group]Ejecución de pruebas"
+              echo "##[group]Ejecutando pruebas"
               python -m pytest test/ --cov=app --cov-report=xml:coverage.xml -v --junitxml=test-results.xml
               echo "##[endgroup]"
-            displayName: "Ejecutar pruebas"
+            displayName: "Ejecutar pruebas unitarias"
 
           - script: |
-              echo "##[group]Ejecutando análisis SonarQube"
-              export PATH=/opt/sonar-scanner-5.0.1.3006-linux/bin:$PATH
+              echo "##[group]Análisis SonarQube"
               sonar-scanner \
                 -Dsonar.projectKey=$(SONAR_PROJECT_KEY) \
                 -Dsonar.projectName="test-prueba-devops" \
@@ -61,4 +76,11 @@ stages:
                 -Dsonar.login=$(SONAR_TOKEN) \
                 -Dsonar.python.version=$(python.version)
               echo "##[endgroup]"
-            displayName: "Analizar con SonarQube"
+            displayName: "Ejecutar análisis de código"
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: "$(System.DefaultWorkingDirectory)"
+              artifact: $(buildArtifactName)
+              publishLocation: "pipeline"
+            displayName: "Publicar artefacto"
