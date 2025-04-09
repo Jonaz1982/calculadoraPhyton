@@ -12,8 +12,8 @@ pr:
 
 variables:
   python.version: "3.8"
-  SONAR_HOST_URL: "https://sonarqube.imaginamos.com" # Reemplaza con tu URL de SonarQube
-  SONAR_PROJECT_KEY: "test-prueba-devops" # Reemplaza con tu project key
+  SONAR_HOST_URL: "https://sonarqube.imaginamos.com"
+  SONAR_PROJECT_KEY: "test-prueba-devops"
 
 pool:
   vmImage: "ubuntu-latest"
@@ -57,7 +57,7 @@ stages:
               echo "##[endgroup]"
             displayName: "Run tests with coverage"
 
-          # 5. Análisis con SonarQube (CON VARIABLE SECRETA CORRECTA)
+          # 5. Análisis con SonarQube
           - script: |
               echo "##[group]Running SonarQube Analysis"
               sonar-scanner \
@@ -69,13 +69,13 @@ stages:
                 -Dsonar.python.coverage.reportPaths=coverage.xml \
                 -Dsonar.python.xunit.reportPath=test-results.xml \
                 -Dsonar.host.url=$(SONAR_HOST_URL) \
-                -Dsonar.login=$(SONAR_TOKEN) \  # Referencia directa a la variable secreta
+                -Dsonar.login=$(SONAR_TOKEN) \
                 -Dsonar.python.version=$(python.version) \
                 -Dsonar.verbose=true
               echo "##[endgroup]"
             displayName: "Run SonarQube Analysis"
             env:
-              SONAR_TOKEN: $(SONAR_TOKEN_SECRET) # Variable secreta definida en Azure DevOps
+              SONAR_TOKEN: $(SONAR_TOKEN_SECRET)
 
           # 6. Publicar artefactos (opcional para CD)
           - task: PublishPipelineArtifact@1
