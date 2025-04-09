@@ -5,43 +5,26 @@ trigger:
 
 pool:
   vmImage: "ubuntu-latest"
-  timeoutInMinutes: 25
+  timeoutInMinutes: 20
 
 variables:
   python.version: "3.8"
   SONAR_HOST_URL: "https://sonarqube.imaginamos.com"
+  SONAR_TOKEN: $(SONAR_TOKEN_SECRET)
   SONAR_PROJECT_KEY: "test-prueba-devops"
-  # NOTA: SONAR_TOKEN_SECRET debe definirse como variable secreta en Azure DevOps
 
 stages:
-  # STAGE 1: Preparación del entorno
-  - stage: Preparacion
-    displayName: "Preparación del entorno"
+  - stage: PruebasYAnalisis
+    displayName: "Ejecutar pruebas y análisis"
     jobs:
-      - job: InstalarDependencias
-        displayName: "Instalar dependencias"
+      - job: TestYSonar
+        displayName: "Ejecutar pruebas y analizar con SonarQube"
         steps:
-          - script: |
-              echo "##[group]Instalando Java 17"
-               sudo apt-get update -y
-               sudo apt-get install -y openjdk-17-jdk
-               echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-               echo "##[endgroup]"
-            displayName: "Instalar Java 17"
-
-          - script: |
-              echo "Java version:"
-              java -version
-              echo "JAVA_HOME: $JAVA_HOME"
-              echo "Java locations:"
-              ls -la /usr/lib/jvm/
-            displayName: "Verificar instalación Java"
-
           - task: UsePythonVersion@0
             inputs:
               versionSpec: $(python.version)
               addToPath: true
-            displayName: "Configurar Python $(python.version)"
+            displayName: "Configurar Python"
 
           - script: |
               python -m pip install --upgrade pip
@@ -53,70 +36,29 @@ stages:
               wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
               unzip sonar-scanner-cli-*.zip -d /opt
               rm sonar-scanner-cli-*.zip
+              echo "##vso[task.prependpath]/opt/sonar-scanner-5.0.1.3006-linux/bin"
               echo "##[endgroup]"
             displayName: "Instalar SonarScanner"
 
           - script: |
-              echo "##[group]Configurar variables para stages siguientes"
-              echo "##vso[task.setvariable variable=SONAR_SCANNER_PATH]/opt/sonar-scanner-5.0.1.3006-linux/bin"
-              echo "##[endgroup]"
-            displayName: "Configurar variables compartidas"
-
-  # STAGE 2: Ejecución de pruebas
-  - stage: Pruebas
-    displayName: "Ejecución de pruebas"
-    dependsOn: Preparacion
-    jobs:
-      - job: EjecutarPruebas
-        displayName: "Ejecutar pruebas unitarias"
-        steps:
-          - script: |
               echo "##[group]Ejecución de pruebas"
               python -m pytest test/ --cov=app --cov-report=xml:coverage.xml -v --junitxml=test-results.xml
               echo "##[endgroup]"
-            displayName: "Ejecutar pruebas con cobertura"
-
-          - publish: test-results.xml
-            artifact: test-results
-            displayName: "Publicar resultados de pruebas"
-
-          - publish: coverage.xml
-            artifact: coverage-report
-            displayName: "Publicar reporte de cobertura"
-
-  # STAGE 3: Análisis de código
-  - stage: Analisis
-    displayName: "Análisis de código"
-    dependsOn: Pruebas
-    jobs:
-      - job: AnalizarCodigo
-        displayName: "Analizar con SonarQube"
-        variables:
-          SONAR_SCANNER_PATH: $[ stageDependencies.Preparacion.InstalarDependencias.outputs['step.Configurar variables compartidas.SONAR_SCANNER_PATH'] ]
-        steps:
-          - download: current
-            artifact: test-results
-            displayName: "Descargar resultados de pruebas"
-
-          - download: current
-            artifact: coverage-report
-            displayName: "Descargar reporte de cobertura"
+            displayName: "Ejecutar pruebas"
 
           - script: |
               echo "##[group]Ejecutando análisis SonarQube"
-              export PATH=$(SONAR_SCANNER_PATH):$PATH
+              export PATH=/opt/sonar-scanner-5.0.1.3006-linux/bin:$PATH
               sonar-scanner \
                 -Dsonar.projectKey=$(SONAR_PROJECT_KEY) \
                 -Dsonar.projectName="test-prueba-devops" \
                 -Dsonar.projectVersion=1.0 \
                 -Dsonar.sources=app \
                 -Dsonar.tests=test \
-                -Dsonar.python.coverage.reportPaths=$(System.ArtifactsDirectory)/coverage-report/coverage.xml \
-                -Dsonar.python.xunit.reportPath=$(System.ArtifactsDirectory)/test-results/test-results.xml \
+                -Dsonar.python.coverage.reportPaths=coverage.xml \
+                -Dsonar.python.xunit.reportPath=test-results.xml \
                 -Dsonar.host.url=$(SONAR_HOST_URL) \
-                -Dsonar.login=$(SONAR_TOKEN_SECRET) \
+                -Dsonar.login=$(SONAR_TOKEN) \
                 -Dsonar.python.version=$(python.version)
               echo "##[endgroup]"
-            displayName: "Ejecutar análisis SonarQube"
-            env:
-              SONAR_TOKEN_SECRET: $(SONAR_TOKEN_SECRET)
+            displayName: "Analizar con SonarQube"
