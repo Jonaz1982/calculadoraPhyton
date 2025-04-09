@@ -11,7 +11,7 @@ variables:
   TF_VAR_resource_group_name: "rg-infra-dev"
   backend_storage_account: "tfbackendstorage"
   backend_container_name: "terraform-state"
-  backend_key: "infra/terraform.tfstate"
+  backend_key: "iac/terraform.tfstate"
 
 pool:
   vmImage: "ubuntu-latest"
@@ -34,21 +34,19 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                echo "##[group]Instalando Terraform"
                 sudo apt-get update -y
                 sudo apt-get install -y gnupg software-properties-common curl
                 curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
                 sudo apt-add-repository "deb https://apt.releases.hashicorp.com $(lsb_release -cs) main"
                 sudo apt-get update && sudo apt-get install terraform -y
                 terraform -version
-                echo "##[endgroup]"
             displayName: "Instalar Terraform"
 
           - task: Bash@3
             displayName: "Inicializar Terraform"
             inputs:
               targetType: "inline"
-              workingDirectory: "infra"
+              workingDirectory: "iac"
               script: |
                 terraform init \
                   -backend-config="storage_account_name=$(backend_storage_account)" \
@@ -61,7 +59,7 @@ stages:
             displayName: "Plan Terraform"
             inputs:
               targetType: "inline"
-              workingDirectory: "infra"
+              workingDirectory: "iac"
               script: |
                 terraform plan -out=tfplan
 
@@ -69,6 +67,6 @@ stages:
             displayName: "Apply Terraform"
             inputs:
               targetType: "inline"
-              workingDirectory: "infra"
+              workingDirectory: "iac"
               script: |
                 terraform apply -auto-approve tfplan
