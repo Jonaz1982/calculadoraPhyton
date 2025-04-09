@@ -9,6 +9,15 @@ pool:
 
 variables:
   python.version: "3.8"
+  sonar.host.url: "https://sonarqube.imaginamos.com"
+  sonar.login: "sqa_ecda87f6f9e4b59bbde5d0730b3be1722513c848"
+  sonar.projectKey: "test-prueba-devops"
+  sonar.projectName: "test-prueba-devops"
+  sonar.projectVersion: "1.0"
+  sonar.sources: "app"
+  sonar.tests: "test"
+  sonar.language: "py"
+  sonar.python.version: $(python.version)
 
 steps:
   - task: UsePythonVersion@0
@@ -20,6 +29,7 @@ steps:
   - script: |
       python -m pip install --upgrade pip
       pip install pytest
+      pip install sonarqube-api
     displayName: "Instalar dependencias"
     timeoutInMinutes: 3
 
@@ -47,9 +57,34 @@ steps:
     displayName: "Verificación del entorno"
     condition: always()
 
+  - task: SonarQubePrepare@4
+    inputs:
+      SonarQube: "SonarQube"
+      scannerMode: "CLI"
+      configMode: "manual"
+      cliProjectKey: $(sonar.projectKey)
+      cliProjectName: $(sonar.projectName)
+      cliProjectVersion: $(sonar.projectVersion)
+      cliSources: $(sonar.sources)
+      extraProperties: |
+        sonar.python.version=$(python.version)
+        sonar.tests=$(sonar.tests)
+        sonar.language=$(sonar.language)
+        sonar.python.xunit.reportPath=test-reports/TEST-*.xml
+    displayName: "Preparar análisis SonarQube"
+
   - script: |
       echo "##[group]Ejecutando pruebas"
-      python -m pytest test/test_calculadora.py -v
+      mkdir -p test-reports
+      python -m pytest test/test_calculadora.py -v --junitxml=test-reports/TEST-results.xml
       echo "##[endgroup]"
     displayName: "Ejecutar pruebas unitarias"
     timeoutInMinutes: 5
+
+  - task: SonarQubeAnalyze@4
+    displayName: "Ejecutar análisis SonarQube"
+
+  - task: SonarQubePublish@4
+    inputs:
+      pollingTimeoutSec: "300"
+    displayName: "Publicar resultados en SonarQube"
