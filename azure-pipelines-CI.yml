@@ -1,69 +1,65 @@
-name: $(BuildDefinitionName)_$(date:yyyyMMdd)$(rev:.r)
+name: $(Build.DefinitionName)_$(date:yyyyMMdd)$(rev:.r)
+
 trigger:
   branches:
     include:
       - main
-  paths:
-    exclude:
-      - README.md
-      - .gitignore
 
 pr:
   branches:
     include:
       - main
-  paths:
-    exclude:
-      - README.md
-      - .gitignore
+
+variables:
+  python.version: "3.8"
+  SONAR_HOST_URL: "https://sonarqube.imaginamos.com" # Reemplaza con tu URL de SonarQube
+  SONAR_PROJECT_KEY: "test-prueba-devops" # Reemplaza con tu project key
 
 pool:
   vmImage: "ubuntu-latest"
   timeoutInMinutes: 30
 
-variables:
-  python.version: "3.8"
-  SONAR_HOST_URL: "https://sonarqube.imaginamos.com"
-  SONAR_TOKEN: $(SONAR_TOKEN_SECRET)
-  SONAR_PROJECT_KEY: "test-prueba-devops"
-  buildArtifactName: "drop"
-  system.debug: false
-
 stages:
   - stage: BuildAndTest
-    displayName: "Build y Pruebas"
+    displayName: "Build, Test & SonarQube Analysis"
     jobs:
-      - job: Build
-        displayName: "Compilación y Análisis"
+      - job: RunTestsAndAnalysis
+        displayName: "Run Tests & SonarQube Scan"
         steps:
+          # 1. Configurar Python
           - task: UsePythonVersion@0
             inputs:
               versionSpec: $(python.version)
               addToPath: true
-            displayName: "Configurar Python $(python.version)"
+            displayName: "Set up Python $(python.version)"
 
+          # 2. Instalar dependencias
           - script: |
               python -m pip install --upgrade pip
-              pip install -r requirements.txt
-            displayName: "Instalar dependencias"
+              pip install pytest pytest-cov
+              if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+            displayName: "Install dependencies"
 
+          # 3. Instalar SonarScanner
           - script: |
-              echo "##[group]Instalación SonarScanner"
+              echo "##[group]Installing SonarScanner"
               wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
               unzip -q sonar-scanner-cli-*.zip -d /opt
               rm sonar-scanner-cli-*.zip
               echo "##vso[task.prependpath]/opt/sonar-scanner-5.0.1.3006-linux/bin"
               echo "##[endgroup]"
-            displayName: "Instalar SonarScanner"
+            displayName: "Install SonarScanner"
 
+          # 4. Ejecutar pruebas con cobertura
           - script: |
-              echo "##[group]Ejecutando pruebas"
+              echo "##[group]Running tests with coverage"
               python -m pytest test/ --cov=app --cov-report=xml:coverage.xml -v --junitxml=test-results.xml
               echo "##[endgroup]"
-            displayName: "Ejecutar pruebas unitarias"
+            displayName: "Run tests with coverage"
 
+          # 5. Análisis con SonarQube (CON VARIABLE SECRETA CORRECTA)
           - script: |
-              echo "##[group]Análisis SonarQube"
+              echo "##[group]Running SonarQube Analysis"
               sonar-scanner \
                 -Dsonar.projectKey=$(SONAR_PROJECT_KEY) \
                 -Dsonar.projectName="test-prueba-devops" \
@@ -73,14 +69,18 @@ stages:
                 -Dsonar.python.coverage.reportPaths=coverage.xml \
                 -Dsonar.python.xunit.reportPath=test-results.xml \
                 -Dsonar.host.url=$(SONAR_HOST_URL) \
-                -Dsonar.login=$(SONAR_TOKEN) \
-                -Dsonar.python.version=$(python.version)
+                -Dsonar.login=$(SONAR_TOKEN) \  # Referencia directa a la variable secreta
+                -Dsonar.python.version=$(python.version) \
+                -Dsonar.verbose=true
               echo "##[endgroup]"
-            displayName: "Ejecutar análisis de código"
+            displayName: "Run SonarQube Analysis"
+            env:
+              SONAR_TOKEN: $(SONAR_TOKEN_SECRET) # Variable secreta definida en Azure DevOps
 
+          # 6. Publicar artefactos (opcional para CD)
           - task: PublishPipelineArtifact@1
             inputs:
-              targetPath: "$(System.DefaultWorkingDirectory)"
-              artifact: $(buildArtifactName)
+              targetPath: $(System.DefaultWorkingDirectory)
+              artifact: "drop"
               publishLocation: "pipeline"
-            displayName: "Publicar artefacto"
+            displayName: "Publish build artifacts"
