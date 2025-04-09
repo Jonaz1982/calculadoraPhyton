@@ -5,86 +5,65 @@ trigger:
 
 pool:
   vmImage: "ubuntu-latest"
-  timeoutInMinutes: 10
+  timeoutInMinutes: 15
 
 variables:
   python.version: "3.8"
-  sonar.host.url: "https://sonarqube.imaginamos.com"
-  sonar.login: "sqa_ecda87f6f9e4b59bbde5d0730b3be1722513c848"
-  sonar.projectKey: "test-prueba-devops"
-  sonar.projectName: "test-prueba-devops"
-  sonar.projectVersion: "1.0"
-  sonar.sources: "app"
-  sonar.tests: "test"
-  sonar.language: "py"
-  sonar.python.version: $(python.version)
+  SONAR_HOST_URL: "https://sonarqube.imaginamos.com"
+  SONAR_TOKEN: "sqa_ecda87f6f9e4b59bbde5d0730b3be1722513c848"
+  SONAR_PROJECT_KEY: "test-prueba-devops"
 
 steps:
+  # 1. Configuración de Python
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(python.version)
       addToPath: true
     displayName: "Configurar Python $(python.version)"
 
+  # 2. Instalación de dependencias
   - script: |
       python -m pip install --upgrade pip
-      pip install pytest
-      pip install sonarqube-api
+      pip install pytest pytest-cov
     displayName: "Instalar dependencias"
-    timeoutInMinutes: 3
 
+  # 3. Descargar SonarScanner
   - script: |
-      echo "##[group]Estructura del proyecto"
-      ls -R
+      echo "##[group]Instalando SonarScanner"
+      wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+      unzip sonar-scanner-cli-*.zip -d /opt
+      rm sonar-scanner-cli-*.zip
       echo "##[endgroup]"
+    displayName: "Instalar SonarScanner"
 
-      echo "##[group]Configurando rutas"
-      echo "PYTHONPATH actual: $PYTHONPATH"
+  # 4. Configurar entorno
+  - script: |
+      echo "##[group]Configurando entorno"
       echo "##vso[task.prependpath]$PWD/app"
-      echo "Nuevo PYTHONPATH: $PYTHONPATH"
+      echo "##vso[task.prependpath]/opt/sonar-scanner-4.8.0.2856-linux/bin"
       echo "##[endgroup]"
-    displayName: "Configurar entorno"
+    displayName: "Configurar paths"
 
+  # 5. Ejecutar pruebas con cobertura
   - script: |
-      echo "##[group]Diagnóstico detallado"
-      echo "Contenido de test/:"
-      ls -la test/
-      echo "Contenido de app/:"
-      ls -la app/
-      echo "Paths de Python:"
-      python -c "import sys; print('\n'.join(sys.path))"
+      echo "##[group]Ejecutando pruebas con cobertura"
+      python -m pytest test/ --cov=app --cov-report=xml:coverage.xml -v --junitxml=test-results.xml
       echo "##[endgroup]"
-    displayName: "Verificación del entorno"
-    condition: always()
+    displayName: "Ejecutar pruebas"
 
-  - task: SonarQubePrepare@4
-    inputs:
-      SonarQube: "SonarQube"
-      scannerMode: "CLI"
-      configMode: "manual"
-      cliProjectKey: $(sonar.projectKey)
-      cliProjectName: $(sonar.projectName)
-      cliProjectVersion: $(sonar.projectVersion)
-      cliSources: $(sonar.sources)
-      extraProperties: |
-        sonar.python.version=$(python.version)
-        sonar.tests=$(sonar.tests)
-        sonar.language=$(sonar.language)
-        sonar.python.xunit.reportPath=test-reports/TEST-*.xml
-    displayName: "Preparar análisis SonarQube"
-
+  # 6. Ejecutar análisis SonarQube
   - script: |
-      echo "##[group]Ejecutando pruebas"
-      mkdir -p test-reports
-      python -m pytest test/test_calculadora.py -v --junitxml=test-reports/TEST-results.xml
+      echo "##[group]Ejecutando análisis SonarQube"
+      sonar-scanner \
+        -Dsonar.projectKey=$(SONAR_PROJECT_KEY) \
+        -Dsonar.projectName="test-prueba-devops" \
+        -Dsonar.projectVersion=1.0 \
+        -Dsonar.sources=app \
+        -Dsonar.tests=test \
+        -Dsonar.python.coverage.reportPaths=coverage.xml \
+        -Dsonar.python.xunit.reportPath=test-results.xml \
+        -Dsonar.host.url=$(SONAR_HOST_URL) \
+        -Dsonar.login=$(SONAR_TOKEN) \
+        -Dsonar.python.version=$(python.version)
       echo "##[endgroup]"
-    displayName: "Ejecutar pruebas unitarias"
-    timeoutInMinutes: 5
-
-  - task: SonarQubeAnalyze@4
-    displayName: "Ejecutar análisis SonarQube"
-
-  - task: SonarQubePublish@4
-    inputs:
-      pollingTimeoutSec: "300"
-    displayName: "Publicar resultados en SonarQube"
+    displayName: "Analizar con SonarQube"
