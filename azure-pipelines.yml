@@ -2,28 +2,60 @@ trigger:
   branches:
     include:
       - main
+  clean: true # Limpieza del workspace antes de cada ejecución
 
 pool:
   vmImage: "ubuntu-latest"
+  timeoutInMinutes: 10 # Tiempo máximo aumentado
+
+variables:
+  python.version: "3.8"
 
 steps:
+  # 1. Configuración de Python
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: "3.8"
+      versionSpec: $(python.version)
       addToPath: true
+    displayName: "Configurar Python $(python.version)"
 
+  # 2. Instalación de dependencias
   - script: |
       python -m pip install --upgrade pip
       pip install pytest
     displayName: "Instalar dependencias"
+    timeoutInMinutes: 3
 
+  # 3. Configuración del entorno
   - script: |
-      echo "Estructura del proyecto:"
+      echo "##[group]Estructura del proyecto"
       ls -R
-      echo "Configurando PYTHONPATH..."
+      echo "##[endgroup]"
+
+      echo "##[group]Configurando rutas"
+      echo "PYTHONPATH actual: $PYTHONPATH"
       echo "##vso[task.prependpath]$PWD/app"
+      echo "Nuevo PYTHONPATH: $PYTHONPATH"
+      echo "##[endgroup]"
     displayName: "Configurar entorno"
 
+  # 4. Paso de diagnóstico (opcional, puede removerse después)
   - script: |
+      echo "##[group]Diagnóstico detallado"
+      echo "Contenido de test/:"
+      ls -la test/
+      echo "Contenido de app/:"
+      ls -la app/
+      echo "Paths de Python:"
+      python -c "import sys; print('\n'.join(sys.path))"
+      echo "##[endgroup]"
+    displayName: "Verificación del entorno"
+    condition: always() # Se ejecuta incluso si fallan pasos anteriores
+
+  # 5. Ejecución de pruebas
+  - script: |
+      echo "##[group]Ejecutando pruebas"
       python -m pytest test/test_calculadora.py -v
+      echo "##[endgroup]"
     displayName: "Ejecutar pruebas unitarias"
+    timeoutInMinutes: 5
