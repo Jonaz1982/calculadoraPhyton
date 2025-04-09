@@ -3,74 +3,23 @@ trigger:
     include:
       - main
 
-variables:
-  buildConfiguration: 'Release'
-  SONARQUBE_ENDPOINT: 'SonarQubeServiceConnection'  # Este debe ser el nombre del servicio conectado en Azure DevOps
+pool:
+  vmImage: "ubuntu-lastest"
 
-stages:
-- stage: Build
-  displayName: 'Compilar Código'
-  jobs:
-  - job: Build
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.x'
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3X"
+      addToPath: true
 
-    - script: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-      displayName: 'Instalar dependencias'
+  - script: |
+      python -m pip install --upgrade pip
+    displayName: "Instalar pip"
 
-    - task: SonarQubePrepare@5
-      inputs:
-        SonarQube: '$(SONARQUBE_ENDPOINT)'
-        scannerMode: 'CLI'
-        configMode: 'manual'
-        cliProjectKey: 'test-prueba-devops'
-        cliProjectName: 'test-prueba-devops'
-        extraProperties: |
-          sonar.host.url=https://sonarqube.imaginamos.com
-          sonar.login=sqa_ecda87f6f9e4b59bbde5d0730b3be1722513c848
-          sonar.python.coverage.reportPaths=coverage.xml
+  - script: |
+      pip install -r requerementes.txt
+    displayName: "Instalara dependecias"
 
-- stage: Test
-  displayName: 'Ejecutar Pruebas Unitarias'
-  dependsOn: Build
-  jobs:
-  - job: Test
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - script: |
-        pip install pytest pytest-cov
-        pytest --cov=. --cov-report=xml
-      displayName: 'Correr pruebas y generar cobertura'
-
-    - task: SonarQubeAnalyze@5
-      displayName: 'Analizar en SonarQube'
-
-    - task: SonarQubePublish@5
-      inputs:
-        pollingTimeoutSec: '300'
-      displayName: 'Publicar Resultados en SonarQube'
-
-- stage: Deploy
-  displayName: 'Desplegar en AKS'
-  dependsOn: Test
-  jobs:
-  - job: Deploy
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: AzureCLI@2
-      inputs:
-        azureSubscription: 'NombreDelServicioAzure' # Conexión de servicio a Azure
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          az aks get-credentials --name akz-prueba-tecnica --resource-group NombreDelGrupoDeRecursos
-          kubectl apply -f manifests/deployment.yaml
-      displayName: 'Desplegar en AKS'
+  - script: |
+      python test/test_calculadora.py
+    displayName: "Ejecutar pruebas"
