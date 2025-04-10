@@ -8,7 +8,7 @@ trigger:
 variables:
   TF_VAR_location: "eastus"
   TF_VAR_environment: "dev"
-  TF_VAR_resource_group_name: "rg-infra-dev"
+  TF_VAR_resource_group_name: "rgtest"
   backend_storage_account: "tfbackendstorage"
   backend_container_name: "terraform-state"
   backend_key: "iac/terraform.tfstate"
