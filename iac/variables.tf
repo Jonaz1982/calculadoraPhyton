@@ -18,3 +18,8 @@ variable "sql_admin_password" {
   description = "Contraseña del administrador de SQL Server"
   sensitive   = true
 }
+
+variable "private_subnet_cidrs" {
+  type        = list(string)
+  description = "CIDRs para las subredes privadas"
+}
