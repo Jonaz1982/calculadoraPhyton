@@ -7,12 +7,18 @@ provider "helm" {
   }
 }
 
+resource "kubernetes_namespace" "monitoring" {
+  metadata {
+    name = "monitoring"
+  }
+}
+
 resource "helm_release" "loki" {
   name       = "loki"
   repository = "https://grafana.github.io/helm-charts"
   chart      = "loki"
-  version    = "2.9.10"
-  namespace  = "monitoring"
+  version    = "5.0.1"
+  namespace  = kubernetes_namespace.monitoring.metadata[0].name
   create_namespace = true
 }
 
@@ -22,7 +28,7 @@ resource "helm_release" "promtail" {
   repository = "https://grafana.github.io/helm-charts"
   chart      = "promtail"
   version    = "6.11.2"
-  namespace  = "monitoring"
+  namespace  = kubernetes_namespace.monitoring.metadata[0].name
   create_namespace = false
 
   set {
