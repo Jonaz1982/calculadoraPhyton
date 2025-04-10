@@ -40,4 +40,5 @@ module "monitoring" {
   k8s_host                   = module.aks.k8s_host
     k8s_client_certificate     = module.aks.k8s_client_certificate
     k8s_client_key             = module.aks.k8s_client_key
-    k8s_cluster_ca_certificate = module.aks.k8s_cluster_ca_certificate}
+    k8s_cluster_ca_certificate = module.aks.k8s_cluster_ca_certificate
+}
