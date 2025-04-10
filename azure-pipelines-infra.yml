@@ -24,10 +24,13 @@ stages:
         displayName: "Terraform Init, Plan & Apply"
         steps:
           - task: UsePythonVersion@0
+            displayName: "Seleccionar versión de Python 3.x"
             inputs:
               versionSpec: "3.x"
               addToPath: true
+
           - task: TerraformTaskV4@4
+            displayName: "🌱 Terraform Init"
             inputs:
               provider: "azurerm"
               command: "init"
@@ -36,15 +39,18 @@ stages:
               backendAzureRmResourceGroupName: "rgtest"
               backendAzureRmStorageAccountName: "rgterraformdevops01"
               backendAzureRmContainerName: "terraform"
-              backendAzureRmKey: "0Ku03ddwHLUiYsXpytRlhtByWebUIuwdSsAKsX7NCASDYQhPpY+qKJkRevrIsn0YD/41Jth3//Fq+AStZRCp5A=="
+              backendAzureRmKey: "iac/terraform.tfstate"
 
           - task: TerraformTaskV4@4
+            displayName: "🔍 Terraform Plan"
             inputs:
               provider: "azurerm"
               command: "plan"
               workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
               environmentServiceNameAzureRM: "ConexiónAzureServicePrincipal"
+
           - task: TerraformTaskV4@4
+            displayName: "🚀 Terraform Apply"
             inputs:
               provider: "azurerm"
               command: "apply"
