@@ -7,3 +7,5 @@ aks_name_2                = "aks-cluster-2"
 node_vm_size              = "Standard_DS2_v2"
 node_min_count            = 1
 node_max_count            = 3
+sql_admin_user            = "sqladmin"
+sql_admin_password        = "SuperSecurePassword123!"

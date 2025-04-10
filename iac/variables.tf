@@ -42,3 +42,14 @@ variable "node_max_count" {
   description = "Maximum node count for AKS autoscaling"
   type        = number
 }
+
+variable "sql_admin_user" {
+  description = "Admin username for the SQL Server"
+  type        = string
+}
+
+variable "sql_admin_password" {
+  description = "Admin password for the SQL Server"
+  type        = string
+  sensitive   = true
+}
