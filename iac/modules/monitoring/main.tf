@@ -20,9 +20,6 @@ resource "helm_release" "loki" {
   version    = "2.10.2" # 
   namespace         = kubernetes_namespace.monitoring.metadata[0].name
   create_namespace  = false
-  values = [
-    file("${path.module}/values/loki-values.yaml")
-  ]
 }
 
 
