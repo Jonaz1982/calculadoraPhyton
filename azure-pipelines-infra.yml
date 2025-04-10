@@ -35,7 +35,7 @@ stages:
               provider: "azurerm"
               command: "init"
               workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
-              backendServiceArm: "ConexiónAzureServicePrincipal"
+              backendServiceArm: "ConexionAzureServicePrincipal1"
               backendAzureRmResourceGroupName: "rgtest"
               backendAzureRmStorageAccountName: "rgterraformdevops01"
               backendAzureRmContainerName: "terraform"
@@ -47,7 +47,7 @@ stages:
               provider: "azurerm"
               command: "plan"
               workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
-              environmentServiceNameAzureRM: "ConexiónAzureServicePrincipal"
+              environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
 
           - task: TerraformTaskV4@4
             displayName: "🚀 Terraform Apply"
@@ -55,4 +55,4 @@ stages:
               provider: "azurerm"
               command: "apply"
               workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
-              environmentServiceNameAzureRM: "ConexiónAzureServicePrincipal"
+              environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
