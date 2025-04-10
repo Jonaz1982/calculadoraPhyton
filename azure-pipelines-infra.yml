@@ -27,46 +27,26 @@ stages:
             inputs:
               versionSpec: "3.x"
               addToPath: true
-
-          - task: AzureCLI@2
+          - task: TerraformTaskV4@4
             inputs:
-              azureSubscription: "ConexiónAzureServicePrincipal"
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                sudo apt-get update -y
-                sudo apt-get install -y gnupg software-properties-common curl
-                curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-                sudo apt-add-repository "deb https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-                sudo apt-get update && sudo apt-get install terraform -y
-                terraform -version
-            displayName: "Instalar Terraform"
+              provider: "azurerm"
+              command: "init"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
+              backendServiceArm: "ConexiónAzureServicePrincipal"
+              backendAzureRmResourceGroupName: "rgtest"
+              backendAzureRmStorageAccountName: "rgterraformdevops01"
+              backendAzureRmContainerName: "terraform"
+              backendAzureRmKey: "0Ku03ddwHLUiYsXpytRlhtByWebUIuwdSsAKsX7NCASDYQhPpY+qKJkRevrIsn0YD/41Jth3//Fq+AStZRCp5A=="
 
-          - task: Bash@3
-            displayName: "Inicializar Terraform"
+          - task: TerraformTaskV4@4
             inputs:
-              targetType: "inline"
-              workingDirectory: "iac"
-              script: |
-                terraform init \
-                  -backend-config="storage_account_name=$(backend_storage_account)" \
-                  -backend-config="container_name=$(backend_container_name)" \
-                  -backend-config="key=$(backend_key)" \
-                  -backend-config="resource_group_name=$(TF_VAR_resource_group_name)" \
-                  -upgrade
-
-          - task: Bash@3
-            displayName: "Plan Terraform"
+              provider: "azurerm"
+              command: "plan"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
+              environmentServiceNameAzureRM: "ConexiónAzureServicePrincipal"
+          - task: TerraformTaskV4@4
             inputs:
-              targetType: "inline"
-              workingDirectory: "iac"
-              script: |
-                terraform plan -out=tfplan
-
-          - task: Bash@3
-            displayName: "Apply Terraform"
-            inputs:
-              targetType: "inline"
-              workingDirectory: "iac"
-              script: |
-                terraform apply -auto-approve tfplan
+              provider: "azurerm"
+              command: "apply"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
+              environmentServiceNameAzureRM: "ConexiónAzureServicePrincipal"
