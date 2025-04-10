@@ -16,11 +16,15 @@ resource "kubernetes_namespace" "monitoring" {
 resource "helm_release" "loki" {
   name       = "loki"
   repository = "https://grafana.github.io/helm-charts"
-  chart      = "loki"
-  version    = "5.0.1"
-  namespace  = kubernetes_namespace.monitoring.metadata[0].name
-  create_namespace = true
+  chart      = "loki-stack"
+  version    = "2.10.2" # 
+  namespace         = kubernetes_namespace.monitoring.metadata[0].name
+  create_namespace  = false
+  values = [
+    file("${path.module}/values/loki-values.yaml")
+  ]
 }
+
 
 resource "helm_release" "promtail" {
   count      = length(var.aks_clusters)
