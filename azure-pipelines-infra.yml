@@ -27,7 +27,29 @@ stages:
             inputs:
               versionSpec: "3.x"
               addToPath: true
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/calculadoraPhyton/iac'
+              backendServiceArm: 'ConexiónAzureServicePrincipal'
+              backendAzureRmResourceGroupName: 'rgtest'
+              backendAzureRmStorageAccountName: 'rgterraformdevops01'
+              backendAzureRmContainerName: 'terraform'
+              backendAzureRmKey: '0Ku03ddwHLUiYsXpytRlhtByWebUIuwdSsAKsX7NCASDYQhPpY+qKJkRevrIsn0YD/41Jth3//Fq+AStZRCp5A=='
 
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'plan'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/calculadoraPhyton/iac'
+              environmentServiceNameAzureRM: 'ConexiónAzureServicePrincipal'
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/calculadoraPhyton/iac'
+              environmentServiceNameAzureRM: 'ConexiónAzureServicePrincipal'
           - task: AzureCLI@2
             inputs:
               azureSubscription: "ConexiónAzureServicePrincipal"
