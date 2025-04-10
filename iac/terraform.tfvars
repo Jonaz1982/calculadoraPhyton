@@ -1,6 +1,6 @@
 location                  = "eastus"
 environment               = "dev"
-resource_group_name       = "rg-infra-dev"
+resource_group_name       = "rgtest"
 vnet_address_space        = ["10.0.0.0/16"]
 aks_name_1                = "aks-cluster-1"
 aks_name_2                = "aks-cluster-2"
