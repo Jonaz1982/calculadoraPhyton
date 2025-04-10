@@ -18,18 +18,3 @@ variable "sql_admin_password" {
   description = "Contraseña del administrador de SQL Server"
   sensitive   = true
 }
-
-variable "environment" {
-  description = "Environment name (main, qa, prod)"
-  type        = string
-}
-
-variable "location" {
-  description = "eastus"
-  type        = string
-}
-
-variable "resource_group_name" {
-  description = "rgtest"
-  type        = string
-}
