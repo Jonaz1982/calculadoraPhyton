@@ -57,7 +57,7 @@ stages:
           - task: TerraformTaskV4@4
             name: TerraformApply
             displayName: "🚀 Terraform Apply"
-            condition: and(succeeded(), eq(variables['TerraformPlan.TerraformPlanExitCode'], '2'))
+            condition: succeeded()
             inputs:
               provider: "azurerm"
               command: "apply"
