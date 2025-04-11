@@ -1,51 +1,36 @@
 name: $(Build.DefinitionName)_CD_$(date:yyyyMMdd)$(rev:.r)
 
-trigger: none # Este pipeline no se ejecuta automáticamente
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
 
 variables:
-  RESOURCE_GROUP: "test-rg"
-  CLUSTERS: "aks-cluster-1 aks-cluster-2"
-  ACR_NAME: "acrtestdevopsdemo"
-  ACR_LOGIN_SERVER: "acrtestdevopsdemo.azurecr.io"
-  IMAGE_NAME: "test-prueba-devops"
+  DOCKER_IMAGE_NAME: "test-prueba-devops"
 
 stages:
   - stage: Deploy
-    displayName: "Deploy to AKS Clusters"
+    displayName: "Desplegar en AKS"
     jobs:
-      - deployment: DeployToAKS
-        environment: "aks-deployment"
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                # Descargar artefactos del pipeline de CI
-                - download: current
-                  artifact: drop
+      - job: CD
+        steps:
+          - download:
+              artifact: drop
+              build:
+                pipeline: CI-Pipeline-Calculadora en phyton
+                project: Calculadora en phyton
+                buildVersionToDownload: latest
 
-                # Iniciar sesión en Azure y desplegar en los clústeres
-                - task: AzureCLI@2
-                  inputs:
-                    azureSubscription: "ConexionAzureServicePrincipal1"
-                    scriptType: bash
-                    scriptLocation: inlineScript
-                    inlineScript: |
-                      for cluster in $CLUSTERS; do
-                        echo "🔧 Conectando al clúster: $cluster"
-                        az aks get-credentials --resource-group $RESOURCE_GROUP --name $cluster --overwrite-existing
-
-                        echo "📦 Creando ConfigMap..."
-                        kubectl apply -f k8s/configmap.yaml
-
-                        echo "🚀 Aplicando deployment..."
-                        kubectl apply -f k8s/deployment.yaml
-
-                        echo "📡 Exponiendo servicio..."
-                        kubectl apply -f k8s/service.yaml
-
-                        echo "🌐 Aplicando ingreso..."
-                        kubectl apply -f k8s/ingress.yaml
-
-                        echo "✅ Despliegue finalizado en $cluster"
-                      done
-                  displayName: "Deploy Docker Image to AKS Clusters"
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: "ConexionAzureServicePrincipal1"
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                for cluster in aks-cluster-1 aks-cluster-2; do
+                  echo "⎈ Configurando $cluster"
+                  az aks get-credentials --resource-group test-rg --name $cluster --overwrite-existing
+                  kubectl apply -f k8s/configmap.yaml
+                  kubectl apply -f k8s/deployment.yaml
+                  kubectl apply -f k8s/ingress.yaml
+                done

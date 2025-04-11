@@ -1,14 +1,9 @@
-name: $(Build.DefinitionName)_$(date:yyyyMMdd)$(rev:.r)
+name: $(Build.DefinitionName)_CI_$(date:yyyyMMdd)$(rev:.r)
 
 trigger:
   branches:
     include:
-      - none
-
-pr:
-  branches:
-    include:
-      - none
+      - main
 
 variables:
   python.version: "3.8"
@@ -18,96 +13,55 @@ variables:
 
 pool:
   vmImage: "ubuntu-latest"
-  timeoutInMinutes: 30
 
 stages:
   - stage: BuildAndTest
     displayName: "Build, Test, Analyze & Dockerize"
     jobs:
-      - job: RunTestsAndBuildImage
-        displayName: "CI: Python, SonarQube & Docker"
+      - job: CI
         steps:
-          # 1. Configurar Python
           - task: UsePythonVersion@0
             inputs:
               versionSpec: $(python.version)
-              addToPath: true
-            displayName: "Set up Python $(python.version)"
 
-          # 2. Instalar dependencias
           - script: |
-              python -m pip install --upgrade pip
+              pip install -r requirements.txt
               pip install pytest pytest-cov
-              if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-            displayName: "Install dependencies"
+            displayName: "Instalar dependencias"
 
-          # 3. Instalar SonarScanner
           - script: |
-              echo "##[group]Installing SonarScanner"
               wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
               unzip -q sonar-scanner-cli-*.zip -d /opt
-              rm sonar-scanner-cli-*.zip
               echo "##vso[task.prependpath]/opt/sonar-scanner-5.0.1.3006-linux/bin"
-              echo "##[endgroup]"
-            displayName: "Install SonarScanner"
+            displayName: "Instalar SonarScanner"
 
-          # 4. Ejecutar pruebas con cobertura
           - script: |
-              echo "##[group]Running tests with coverage"
-              python -m pytest test/ --cov=app --cov-report=xml:coverage.xml -v --junitxml=test-results.xml
-              echo "##[endgroup]"
-            displayName: "Run tests with coverage"
+              pytest test/ --cov=app --cov-report=xml:coverage.xml -v --junitxml=test-results.xml
+            displayName: "Ejecutar pruebas"
 
-          # 5. Análisis con SonarQube
           - script: |
-              echo "##[group]Running SonarQube Analysis"
               sonar-scanner \
                 -Dsonar.projectKey=$(SONAR_PROJECT_KEY) \
-                -Dsonar.projectName="test-prueba-devops" \
-                -Dsonar.projectVersion=1.0 \
                 -Dsonar.sources=app \
                 -Dsonar.tests=test \
                 -Dsonar.python.coverage.reportPaths=coverage.xml \
                 -Dsonar.python.xunit.reportPath=test-results.xml \
                 -Dsonar.host.url=$(SONAR_HOST_URL) \
-                -Dsonar.login=$SONAR_TOKEN \
-                -Dsonar.python.version=$(python.version) \
-                -Dsonar.verbose=true
-              echo "##[endgroup]"
-            displayName: "Run SonarQube Analysis"
+                -Dsonar.login=$(SONAR_TOKEN)
+            displayName: "Análisis SonarQube"
             env:
               SONAR_TOKEN: $(SONAR_TOKEN_SECRET)
 
-          # 6. Instalar Docker
           - script: |
-              echo "##[group]Installing Docker"
-              sudo apt-get update
-              sudo apt-get install -y \
-                ca-certificates \
-                curl \
-                gnupg \
-                lsb-release
-              sudo mkdir -p /etc/apt/keyrings
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-              echo \
-                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-                $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-              sudo apt-get update
-              sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-              echo "##[endgroup]"
-            displayName: "Install Docker"
+              docker build -t acrtestdevopsdemo.azurecr.io/$(DOCKER_IMAGE_NAME):$(Build.BuildId) .
+              echo $(DOCKER_PASSWORD) | docker login acrtestdevopsdemo.azurecr.io -u $(DOCKER_USERNAME) --password-stdin
+              docker push acrtestdevopsdemo.azurecr.io/$(DOCKER_IMAGE_NAME):$(Build.BuildId)
+            displayName: "Build y Push Docker"
+            env:
+              DOCKER_USERNAME: $(DOCKER_USERNAME)
+              DOCKER_PASSWORD: $(DOCKER_PASSWORD)
 
-          # 7. Construir imagen Docker
-          - script: |
-              echo "##[group]Building Docker image"
-              docker build -t $(DOCKER_IMAGE_NAME):$(Build.BuildId) .
-              echo "##[endgroup]"
-            displayName: "Build Docker Image"
-
-          # 8. Publicar artefactos
           - task: PublishPipelineArtifact@1
             inputs:
-              targetPath: $(System.DefaultWorkingDirectory)
-              artifact: "drop"
-              publishLocation: "pipeline"
-            displayName: "Publish build artifacts"
+              targetPath: $(Pipeline.Workspace)
+              artifact: drop
