@@ -14,6 +14,7 @@ variables:
   python.version: "3.8"
   SONAR_HOST_URL: "https://sonarqube.imaginamos.com"
   SONAR_PROJECT_KEY: "test-prueba-devops"
+  DOCKER_IMAGE_NAME: "test-prueba-devops"
 
 pool:
   vmImage: "ubuntu-latest"
@@ -21,10 +22,10 @@ pool:
 
 stages:
   - stage: BuildAndTest
-    displayName: "Build, Test & SonarQube Analysis"
+    displayName: "Build, Test, Analyze & Dockerize"
     jobs:
-      - job: RunTestsAndAnalysis
-        displayName: "Run Tests & SonarQube Scan"
+      - job: RunTestsAndBuildImage
+        displayName: "CI: Python, SonarQube & Docker"
         steps:
           # 1. Configurar Python
           - task: UsePythonVersion@0
@@ -75,9 +76,35 @@ stages:
               echo "##[endgroup]"
             displayName: "Run SonarQube Analysis"
             env:
-              SONAR_TOKEN: $(SONAR_TOKEN_SECRET) # Variable secreta en Azure DevOps
+              SONAR_TOKEN: $(SONAR_TOKEN_SECRET)
 
-          # 6. Publicar artefactos
+          # 6. Instalar Docker
+          - script: |
+              echo "##[group]Installing Docker"
+              sudo apt-get update
+              sudo apt-get install -y \
+                ca-certificates \
+                curl \
+                gnupg \
+                lsb-release
+              sudo mkdir -p /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              echo \
+                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+                $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              sudo apt-get update
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+              echo "##[endgroup]"
+            displayName: "Install Docker"
+
+          # 7. Construir imagen Docker
+          - script: |
+              echo "##[group]Building Docker image"
+              docker build -t $(DOCKER_IMAGE_NAME):$(Build.BuildId) .
+              echo "##[endgroup]"
+            displayName: "Build Docker Image"
+
+          # 8. Publicar artefactos
           - task: PublishPipelineArtifact@1
             inputs:
               targetPath: $(System.DefaultWorkingDirectory)
