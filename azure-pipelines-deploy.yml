@@ -1,36 +1,54 @@
-name: $(Build.DefinitionName)_CD_$(date:yyyyMMdd)$(rev:.r)
+name: $(Build.DefinitionName)_$(Date:yyyyMMdd)$(Rev:.r)
 
-trigger: none
+trigger:
+  branches:
+    include:
+      - main
 
-pool:
-  vmImage: ubuntu-latest
+pr:
+  branches:
+    include:
+      - none
 
 variables:
   DOCKER_IMAGE_NAME: "test-prueba-devops"
+  CLUSTER_1: "aks-cluster-1"
+  CLUSTER_2: "aks-cluster-2"
+  RESOURCE_GROUP: "rgtest"
+  NAMESPACE: "default"
+
+pool:
+  vmImage: "ubuntu-latest"
 
 stages:
-  - stage: Deploy
-    displayName: "Desplegar en AKS"
+  - stage: DeployK8s
+    displayName: "CD: Deploy to AKS Clusters"
     jobs:
-      - job: CD
+      - job: DeployToClusters
+        displayName: "Deploy to AKS 1 and 2"
         steps:
-          - download:
-              artifact: drop
-              build:
-                pipeline: CI-Pipeline-Calculadora en phyton
-                project: Calculadora en phyton
-                buildVersionToDownload: latest
+          - checkout: self
 
           - task: AzureCLI@2
+            displayName: "Login and Set Context for AKS Cluster 1"
             inputs:
               azureSubscription: "ConexionAzureServicePrincipal1"
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
-                for cluster in aks-cluster-1 aks-cluster-2; do
-                  echo "⎈ Configurando $cluster"
-                  az aks get-credentials --resource-group test-rg --name $cluster --overwrite-existing
-                  kubectl apply -f k8s/configmap.yaml
-                  kubectl apply -f k8s/deployment.yaml
-                  kubectl apply -f k8s/ingress.yaml
-                done
+                az account set --subscription f52b9ead-711d-42c6-b218-66ee8eb3cdcc
+                az aks get-credentials --resource-group $(RESOURCE_GROUP) --name $(CLUSTER_1) --overwrite-existing
+                kubectl config use-context $(CLUSTER_1)
+                kubectl apply -f k8s/
+
+          - task: AzureCLI@2
+            displayName: "Login and Set Context for AKS Cluster 2"
+            inputs:
+              azureSubscription: "ConexionAzureServicePrincipal1"
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az account set --subscription f52b9ead-711d-42c6-b218-66ee8eb3cdcc
+                az aks get-credentials --resource-group $(RESOURCE_GROUP) --name $(CLUSTER_2) --overwrite-existing
+                kubectl config use-context $(CLUSTER_2)
+                kubectl apply -f k8s/
