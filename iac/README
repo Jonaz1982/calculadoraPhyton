@@ -1,0 +1,23 @@
+terraform/
+├── main.tf
+├── variables.tf
+├── terraform.tfvars
+├── outputs.tf
+├── providers.tf
+├── modules/
+│ ├── network/
+│ │ ├── main.tf
+│ │ ├── variables.tf
+│ │ └── outputs.tf
+│ ├── aks/
+│ │ ├── main.tf
+│ │ ├── variables.tf
+│ │ └── outputs.tf
+│ ├── sqlserver/
+│ │ ├── main.tf
+│ │ ├── variables.tf
+│ │ └── outputs.tf
+│ └── monitoring/
+│ ├── main.tf
+│ ├── variables.tf
+│ └── outputs.tf

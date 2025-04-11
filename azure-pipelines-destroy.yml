@@ -1,0 +1,53 @@
+name: $(Build.DefinitionName)_destroy_$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+  branches:
+    include:
+      - none
+
+pr:
+  branches:
+    include:
+      - none
+
+variables:
+  TF_VAR_location: "eastus"
+  TF_VAR_environment: "dev"
+  TF_VAR_resource_group_name: "rgtest"
+  backend_storage_account: "tfbackendstorage"
+  backend_container_name: "terraform-state"
+  backend_key: "iac/terraform.tfstate"
+
+pool:
+  vmImage: "ubuntu-latest"
+
+stages:
+  - stage: Terraform_Destroy
+    displayName: "🔥 Destrucción de Infraestructura en Azure"
+    jobs:
+      - job: DestroyInfra
+        displayName: "Terraform Init & Destroy"
+        steps:
+          - task: UsePythonVersion@0
+            displayName: "Seleccionar versión de Python 3.x"
+            inputs:
+              versionSpec: "3.x"
+              addToPath: true
+
+          - task: TerraformTaskV4@4
+            displayName: "🌱 Terraform Init"
+            inputs:
+              provider: "azurerm"
+              command: "init"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
+              backendServiceArm: "ConexionAzureServicePrincipal1"
+              backendAzureRmResourceGroupName: "rgtest"
+              backendAzureRmStorageAccountName: "rgterraformdevops01"
+              backendAzureRmContainerName: "terraform"
+              backendAzureRmKey: "iac/terraform.tfstate"
+
+          - script: |
+              echo "⚠️ Ejecutando terraform destroy -auto-approve"
+              terraform destroy -auto-approve
+            displayName: "🔥 Destruir Infraestructura"
+            workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
