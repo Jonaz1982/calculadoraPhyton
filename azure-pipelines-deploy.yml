@@ -10,27 +10,47 @@ pr:
     include:
       - none
 
+parameters:
+  - name: entorno
+    displayName: "Seleccionar entorno"
+    type: string
+    default: "dev"
+    values:
+      - dev
+      - qa
+      - prod
+
+  - name: namespace
+    displayName: "Namespace Kubernetes"
+    type: string
+    default: "default"
+
+  - name: imagen_tag
+    displayName: "Tag de imagen Docker"
+    type: string
+    default: "$(Build.BuildId)"
+
 variables:
   DOCKER_IMAGE_NAME: "test-prueba-devops"
   CLUSTER_1: "aks-cluster-1"
   CLUSTER_2: "aks-cluster-2"
   RESOURCE_GROUP: "rgtest"
-  NAMESPACE: "default"
 
 pool:
   vmImage: "ubuntu-latest"
 
 stages:
-  - stage: DeployK8s
-    displayName: "CD: Deploy to AKS Clusters"
+  - stage: Despliegue_AKS
+    displayName: "CD: Despliegue en Clústeres AKS"
     jobs:
-      - job: DeployToClusters
-        displayName: "Deploy to AKS 1 and 2"
+      - job: DesplegarEnClusters
+        displayName: "Desplegar en AKS 1 y AKS 2"
         steps:
           - checkout: self
+            displayName: "📥 Obtener código del repositorio"
 
           - task: AzureCLI@2
-            displayName: "Login and Set Context for AKS Cluster 1"
+            displayName: "🔐 Conectarse y desplegar en AKS Clúster 1"
             inputs:
               azureSubscription: "ConexionAzureServicePrincipal1"
               scriptType: bash
@@ -39,10 +59,10 @@ stages:
                 az account set --subscription f52b9ead-711d-42c6-b218-66ee8eb3cdcc
                 az aks get-credentials --resource-group $(RESOURCE_GROUP) --name $(CLUSTER_1) --overwrite-existing
                 kubectl config use-context $(CLUSTER_1)
-                kubectl apply -f k8s/
+                kubectl apply -f k8s/ -n ${{ parameters.namespace }}
 
           - task: AzureCLI@2
-            displayName: "Login and Set Context for AKS Cluster 2"
+            displayName: "🔐 Conectarse y desplegar en AKS Clúster 2"
             inputs:
               azureSubscription: "ConexionAzureServicePrincipal1"
               scriptType: bash
@@ -51,4 +71,9 @@ stages:
                 az account set --subscription f52b9ead-711d-42c6-b218-66ee8eb3cdcc
                 az aks get-credentials --resource-group $(RESOURCE_GROUP) --name $(CLUSTER_2) --overwrite-existing
                 kubectl config use-context $(CLUSTER_2)
-                kubectl apply -f k8s/
+                kubectl apply -f k8s/ -n ${{ parameters.namespace }}
+
+          - script: |
+              echo "📦 Imagen desplegada: $(DOCKER_IMAGE_NAME):${{ parameters.imagen_tag }}"
+              echo "🚀 Entorno: ${{ parameters.entorno }} | Namespace: ${{ parameters.namespace }}"
+            displayName: "📊 Reportar despliegue"
