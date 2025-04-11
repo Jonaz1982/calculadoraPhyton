@@ -3,12 +3,12 @@ name: $(Build.DefinitionName)_$(date:yyyyMMdd)$(rev:.r)
 trigger:
   branches:
     include:
-      - main
+      - none
 
 pr:
   branches:
     include:
-      - main
+      - none
 
 variables:
   python.version: "3.8"

@@ -1,9 +1,6 @@
-name: $(Build.DefinitionName)_$(Date:yyyyMMdd)$(Rev:.r)
+name: $(Build.DefinitionName)_destroy_$(Date:yyyyMMdd)$(Rev:.r)
 
-trigger:
-  branches:
-    include:
-      - main
+trigger: none # Evita ejecución automática
 
 variables:
   TF_VAR_location: "eastus"
@@ -17,12 +14,11 @@ pool:
   vmImage: "ubuntu-latest"
 
 stages:
-  - stage: Terraform_Deploy
-    displayName: "Despliegue de Infraestructura en Azure"
+  - stage: Terraform_Destroy
+    displayName: "🔴 Destrucción de Infraestructura en Azure"
     jobs:
-      - job: DeployInfra
-        displayName: "Terraform Init, Plan & Apply"
-        continueOnError: false
+      - job: DestroyInfra
+        displayName: "Terraform Init & Destroy"
         steps:
           - task: UsePythonVersion@0
             displayName: "Seleccionar versión de Python 3.x"
@@ -31,7 +27,6 @@ stages:
               addToPath: true
 
           - task: TerraformTaskV4@4
-            name: TerraformInit
             displayName: "🌱 Terraform Init"
             inputs:
               provider: "azurerm"
@@ -44,22 +39,9 @@ stages:
               backendAzureRmKey: "iac/terraform.tfstate"
 
           - task: TerraformTaskV4@4
-            name: TerraformPlan
-            displayName: "🔍 Terraform Plan"
+            displayName: "💣 Terraform Destroy"
             inputs:
               provider: "azurerm"
-              command: "plan"
-              commandOptions: "-detailed-exitcode"
-              workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
-              environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
-            continueOnError: true
-
-          - task: TerraformTaskV4@4
-            name: TerraformApply
-            displayName: "🚀 Terraform Apply"
-            condition: and(succeeded(), eq(variables['TerraformPlan.TerraformPlanExitCode'], '2'))
-            inputs:
-              provider: "azurerm"
-              command: "apply"
+              command: "destroy"
               workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
               environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
