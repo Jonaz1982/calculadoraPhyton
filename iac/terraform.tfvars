@@ -9,3 +9,4 @@ node_min_count            = 1
 node_max_count            = 3
 sql_admin_user            = "sqladmin"
 sql_admin_password        = "SuperSecurePassword123!"
+acr_name                  = "acrtestdevopsdemo"
