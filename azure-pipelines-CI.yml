@@ -97,14 +97,21 @@ stages:
               echo "##[endgroup]"
             displayName: "Install Docker"
 
-          # 7. Construir imagen Docker
+          # 7. Mostrar estructura de archivos
+          - script: |
+              echo "📂 Workspace actual:"
+              pwd
+              ls -la
+            displayName: "📂 Mostrar estructura de archivos"
+
+          # 8. Construir imagen Docker desde Dockerfile en la raíz
           - script: |
               echo "##[group]Building Docker image"
               docker build -t $(DOCKER_IMAGE_NAME):$(Build.BuildId) .
               echo "##[endgroup]"
-            displayName: "Build Docker Image"
+            displayName: "🐳 Build Docker Image"
 
-          # 8. Publicar artefactos
+          # 9. Publicar artefactos
           - task: PublishPipelineArtifact@1
             inputs:
               targetPath: $(System.DefaultWorkingDirectory)
