@@ -42,3 +42,10 @@ module "monitoring" {
   k8s_client_key             = module.aks_cluster_1.k8s_client_key
   k8s_cluster_ca_certificate = module.aks_cluster_1.k8s_cluster_ca_certificate
 }
+
+module "acr" {
+  source              = "./modules/acr"
+  acr_name            = "acrtestdevopsdemo"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+}
