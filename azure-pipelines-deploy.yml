@@ -1,83 +1,51 @@
-trigger: none
+name: $(Build.DefinitionName)_CD_$(date:yyyyMMdd)$(rev:.r)
 
-pr: none
+trigger: none # Este pipeline no se ejecuta automáticamente
 
 variables:
-  azureSubscription: "Nombre-Conexion-Servicio-Azure" # Nombre del service connection en Azure DevOps
-  azureResourceGroup: "rg-prueba-tecnica"
-  aksClusterName: "akz-prueba-tecnica"
-  containerRegistry: "acrpruebatecnica.azurecr.io"
-  containerImageName: "test-prueba-devops"
-  containerImageTag: "$(Build.BuildId)"
-  kubernetesNamespace: "default"
-
-pool:
-  vmImage: "ubuntu-latest"
+  RESOURCE_GROUP: "test-rg"
+  CLUSTERS: "aks-cluster-1 aks-cluster-2"
+  ACR_NAME: "acrtestdevopsdemo"
+  ACR_LOGIN_SERVER: "acrtestdevopsdemo.azurecr.io"
+  IMAGE_NAME: "test-prueba-devops"
 
 stages:
   - stage: Deploy
-    displayName: "Despliegue a AKS"
+    displayName: "Deploy to AKS Clusters"
     jobs:
-      - job: DeployToAKS
-        displayName: "Desplegar imagen al clúster AKS"
-        steps:
-          # 1. Descargar artefacto publicado
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              artifact: "drop"
-              path: "$(Pipeline.Workspace)/drop"
+      - deployment: DeployToAKS
+        environment: "aks-deployment"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Descargar artefactos del pipeline de CI
+                - download: current
+                  artifact: drop
 
-          # 2. Login en Azure
-          - task: AzureCLI@2
-            inputs:
-              azureSubscription: $(azureSubscription)
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                echo "Conectando al clúster AKS..."
-                az aks get-credentials --resource-group $(azureResourceGroup) --name $(aksClusterName) --overwrite-existing
+                # Iniciar sesión en Azure y desplegar en los clústeres
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: "ConexionAzureServicePrincipal1"
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      for cluster in $CLUSTERS; do
+                        echo "🔧 Conectando al clúster: $cluster"
+                        az aks get-credentials --resource-group $RESOURCE_GROUP --name $cluster --overwrite-existing
 
-          # 3. Aplicar manifiesto (ejemplo simple de despliegue)
-          - task: Kubernetes@1
-            displayName: "Desplegar a AKS"
-            inputs:
-              connectionType: "Azure Resource Manager"
-              azureSubscription: $(azureSubscription)
-              azureResourceGroup: $(azureResourceGroup)
-              kubernetesCluster: $(aksClusterName)
-              namespace: $(kubernetesNamespace)
-              command: apply
-              useConfigurationFile: true
-              configuration: |
-                apiVersion: apps/v1
-                kind: Deployment
-                metadata:
-                  name: prueba-devops
-                spec:
-                  replicas: 1
-                  selector:
-                    matchLabels:
-                      app: prueba-devops
-                  template:
-                    metadata:
-                      labels:
-                        app: prueba-devops
-                    spec:
-                      containers:
-                        - name: prueba-devops
-                          image: $(containerRegistry)/$(containerImageName):$(containerImageTag)
-                          ports:
-                            - containerPort: 80
-                ---
-                apiVersion: v1
-                kind: Service
-                metadata:
-                  name: prueba-devops-service
-                spec:
-                  selector:
-                    app: prueba-devops
-                  ports:
-                    - protocol: TCP
-                      port: 80
-                      targetPort: 80
-                  type: LoadBalancer
+                        echo "📦 Creando ConfigMap..."
+                        kubectl apply -f k8s/configmap.yaml
+
+                        echo "🚀 Aplicando deployment..."
+                        kubectl apply -f k8s/deployment.yaml
+
+                        echo "📡 Exponiendo servicio..."
+                        kubectl apply -f k8s/service.yaml
+
+                        echo "🌐 Aplicando ingreso..."
+                        kubectl apply -f k8s/ingress.yaml
+
+                        echo "✅ Despliegue finalizado en $cluster"
+                      done
+                  displayName: "Deploy Docker Image to AKS Clusters"
