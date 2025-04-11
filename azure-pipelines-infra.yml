@@ -49,10 +49,10 @@ stages:
             inputs:
               provider: "azurerm"
               command: "plan"
-              condition: succeeded()
               workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
               environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
             continueOnError: true
+            condition: succeeded()
 
           - task: TerraformTaskV4@4
             name: TerraformApply
@@ -63,3 +63,10 @@ stages:
               command: "apply"
               workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
               environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
+
+          - script: |
+              echo "Mostrando recursos gestionados por Terraform:"
+              terraform state list
+            workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
+            displayName: "📋 Listar estado de Terraform"
+            condition: succeeded()
