@@ -49,7 +49,7 @@ stages:
             inputs:
               provider: "azurerm"
               command: "plan"
-              commandOptions: "succeeded()"
+              condition: succeeded()
               workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
               environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
             continueOnError: true
