@@ -49,7 +49,7 @@ stages:
             inputs:
               provider: "azurerm"
               command: "plan"
-              commandOptions: "-detailed-exitcode"
+              commandOptions: "succeeded()"
               workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
               environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
             continueOnError: true
