@@ -1,6 +1,14 @@
 name: $(Build.DefinitionName)_destroy_$(Date:yyyyMMdd)$(Rev:.r)
 
-trigger: none # Evita ejecución automática
+trigger:
+  branches:
+    include:
+      - none
+
+pr:
+  branches:
+    include:
+      - none
 
 variables:
   TF_VAR_location: "eastus"
@@ -15,7 +23,7 @@ pool:
 
 stages:
   - stage: Terraform_Destroy
-    displayName: "🔴 Destrucción de Infraestructura en Azure"
+    displayName: "🔥 Destrucción de Infraestructura en Azure"
     jobs:
       - job: DestroyInfra
         displayName: "Terraform Init & Destroy"
@@ -38,10 +46,8 @@ stages:
               backendAzureRmContainerName: "terraform"
               backendAzureRmKey: "iac/terraform.tfstate"
 
-          - task: TerraformTaskV4@4
-            displayName: "💣 Terraform Destroy"
-            inputs:
-              provider: "azurerm"
-              command: "destroy"
-              workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
-              environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
+          - script: |
+              echo "⚠️ Ejecutando terraform destroy -auto-approve"
+              terraform destroy -auto-approve
+            displayName: "🔥 Destruir Infraestructura"
+            workingDirectory: "$(System.DefaultWorkingDirectory)/iac"

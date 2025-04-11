@@ -22,7 +22,6 @@ stages:
     jobs:
       - job: DeployInfra
         displayName: "Terraform Init, Plan & Apply"
-        continueOnError: false
         steps:
           - task: UsePythonVersion@0
             displayName: "Seleccionar versión de Python 3.x"
@@ -43,37 +42,31 @@ stages:
               backendAzureRmContainerName: "terraform"
               backendAzureRmKey: "iac/terraform.tfstate"
 
-          - task: TerraformTaskV4@4
-            name: TerraformPlan
-            displayName: "🔍 Terraform Plan"
-            inputs:
-              provider: "azurerm"
-              command: "plan"
-              workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
-              environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
-            continueOnError: true
-            condition: succeeded()
-
-          - task: TerraformTaskV4@4
-            name: TerraformApply
-            displayName: "🚀 Terraform Apply"
-            condition: succeeded()
-            inputs:
-              provider: "azurerm"
-              command: "apply"
-              workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
-              environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
+          - script: |
+              echo "🔍 Ejecutando terraform plan con código de salida"
+              terraform plan -out=tfplan
+              echo "##vso[task.setvariable variable=TF_CHANGES;isOutput=true]$?"
+            name: PlanTerraform
+            displayName: "🔍 Terraform Plan (manual)"
+            workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
 
           - script: |
-              echo "Mostrando recursos gestionados por Terraform:"
+              echo "✅ Aplicando cambios de Terraform"
+              terraform apply -auto-approve tfplan
+            displayName: "🚀 Terraform Apply (si hay cambios)"
+            workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
+            condition: eq(variables['TF_CHANGES'], '2')
+
+          - script: |
+              echo "📋 Recursos gestionados por Terraform:"
               terraform state list
             workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
             displayName: "📋 Listar estado de Terraform"
-            condition: succeeded()
+            condition: eq(variables['TF_CHANGES'], '2')
 
           - script: |
-              echo "Mostrando nombre del ACR creado:"
+              echo "📦 Nombre del ACR creado:"
               terraform output acr_login_server
             workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
             displayName: "📦 Obtener nombre del ACR"
-            condition: succeeded()
+            condition: eq(variables['TF_CHANGES'], '2')
