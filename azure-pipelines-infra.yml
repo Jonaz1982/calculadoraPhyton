@@ -70,3 +70,10 @@ stages:
             workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
             displayName: "📋 Listar estado de Terraform"
             condition: succeeded()
+
+          - script: |
+              echo "Mostrando nombre del ACR creado:"
+              terraform output acr_login_server
+            workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
+            displayName: "📦 Obtener nombre del ACR"
+            condition: succeeded()
