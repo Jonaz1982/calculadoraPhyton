@@ -44,9 +44,3 @@
             command: "apply"
             workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
             environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
-    - script: |
-        echo "Mostrando recursos gestionados por Terraform:"
-         terraform state list
-      workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
-      displayName: "📋 Listar estado de Terraform"
-      condition: succeeded()
