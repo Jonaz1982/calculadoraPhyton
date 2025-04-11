@@ -45,7 +45,6 @@
             workingDirectory: "$(System.DefaultWorkingDirectory)/iac"
             environmentServiceNameAzureRM: "ConexionAzureServicePrincipal1"
 
-        # ✅ NUEVO PASO: Mostrar recursos del estado
         - script: |
             echo "Mostrando recursos gestionados por Terraform:"
             terraform state list
